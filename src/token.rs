@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     t_type: TokenType,
     lexeme: String,
@@ -7,7 +7,7 @@ pub struct Token {
 }
 
 impl Token {
-    fn new(t_type: TokenType, lexeme: String, literal: Literal, line: u64) -> Self {
+    pub fn new(t_type: TokenType, lexeme: String, literal: Literal, line: u64) -> Self {
         Self {
             t_type,
             lexeme,
@@ -19,14 +19,19 @@ impl Token {
 
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:?} {} {:?}", self.t_type, self.lexeme, self.literal))
+        f.write_fmt(format_args!(
+            "{:?} {} {:?}",
+            self.t_type, self.lexeme, self.literal
+        ))
     }
 }
 
-#[derive(Debug)]
-pub enum Literal {}
+#[derive(Debug, Clone)]
+pub enum Literal {
+    None,
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,

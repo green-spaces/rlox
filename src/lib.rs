@@ -44,12 +44,16 @@ impl Lox {
     }
 
     fn run(&mut self, source: String) {
-        let scanner = Scanner::new(source);
-        let tokens = scanner.scan_tokens();
+        let mut scanner = Scanner::new(source);
+        let (tokens, errors) = scanner.scan_tokens();
+        self.had_error = !errors.is_empty();
 
         for token in tokens {
             println!("{token:?}");
         }
+
+        println!("Found {} errors", errors.len());
+        println!("{errors:#?}");
     }
 
     pub fn error(&mut self, line: u64, msg: String) {
