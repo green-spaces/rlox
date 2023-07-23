@@ -29,6 +29,8 @@ impl std::fmt::Display for Token {
 #[derive(Debug, Clone)]
 pub enum Literal {
     None,
+    String(String),
+    Number(f64),
 }
 
 #[derive(Debug, Clone)]

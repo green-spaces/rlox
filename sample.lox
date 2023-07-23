@@ -1,3 +1,17 @@
 // this is a comment
 (( )){} // grouping stuff
 !*+-/=<> <= == // operators
+
+"hello" // string literal
+"hello,
+
+world" // Multiline string
+
+123
+124.32
+
+var hello = "Hello";
+/*
+This is  a 
+multiline comment
+*/ var world = "World";

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     token::{Literal, Token, TokenType},
     Lox,
@@ -10,6 +12,7 @@ pub struct Scanner {
     line: u64,
     start: usize,
     current: usize,
+    keywords: HashMap<String, TokenType>,
 }
 
 impl Scanner {
@@ -19,6 +22,7 @@ impl Scanner {
         let line = 1;
         let start = 0;
         let current = 0;
+        let keywords = keyword_map();
 
         Self {
             source,
@@ -27,6 +31,7 @@ impl Scanner {
             line,
             start,
             current,
+            keywords,
         }
     }
 
@@ -89,12 +94,34 @@ impl Scanner {
                         let _ = self.advance();
                     }
                     self.line += 1;
+                } else if self.match_char('*') {
+                    loop {
+                        if self.is_eof() {
+                            // This is an error state
+                            break;
+                        }
+
+                        if self.peek() == '\n' {
+                            self.line += 1;
+                        }
+
+                        if self.peek() == '*' && self.peek_next() == '/' {
+                            let _ = self.advance();
+                            let _ = self.advance();
+                            break;
+                        }
+
+                        let _ = self.advance();
+                    }
                 } else {
                     self.add_token(TokenType::Slash, Literal::None);
                 }
             }
             ' ' | '\t' | '\r' => {}
             '\n' => self.line += 1,
+            '"' => self.tokenize_string_literal(),
+            d if is_digit(d) => self.tokenize_number_literal(),
+            a if is_alpha(a) => self.tokenize_identifier(),
             _ => self
                 .errors
                 .push(ScannerError::UnrecognizedSymbol(self.line, c)),
@@ -116,6 +143,17 @@ impl Scanner {
         }
     }
 
+    fn peek_next(&self) -> char {
+        if self.is_eof() {
+            '\n'
+        } else {
+            match self.source.as_bytes().get(self.current + 1) {
+                Some(&c) => c.into(),
+                None => '\0',
+            }
+        }
+    }
+
     fn match_char(&mut self, expected: char) -> bool {
         if self.is_eof() {
             return false;
@@ -130,6 +168,59 @@ impl Scanner {
         true
     }
 
+    fn tokenize_string_literal(&mut self) {
+        while self.peek() != '"' && !self.is_eof() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            let _ = self.advance();
+        }
+
+        if self.is_eof() {
+            self.errors.push(ScannerError::UnterminatedString);
+            return;
+        }
+
+        // Consume the '"'
+        let _ = self.advance();
+
+        let value = self
+            .source
+            .get((self.start + 1)..(self.current - 1))
+            .unwrap()
+            .to_string();
+        self.add_token(TokenType::String, Literal::String(value));
+    }
+
+    fn tokenize_number_literal(&mut self) {
+        while is_digit(self.peek()) {
+            let _ = self.advance();
+        }
+
+        if self.peek() == '.' && is_digit(self.peek_next()) {
+            let _ = self.advance();
+            while is_digit(self.peek()) {
+                let _ = self.advance();
+            }
+        }
+
+        let value = self.source.get(self.start..self.current).unwrap();
+        self.add_token(TokenType::Number, Literal::Number(value.parse().unwrap()));
+    }
+
+    fn tokenize_identifier(&mut self) {
+        while is_alphanumeric(self.peek()) {
+            let _ = self.advance();
+        }
+        let maybe_keyword = self.source.get(self.start..self.current).unwrap();
+        let t_type = self
+            .keywords
+            .get(maybe_keyword)
+            .cloned()
+            .unwrap_or(TokenType::Identifier);
+        self.add_token(t_type, Literal::None)
+    }
+
     fn is_eof(&self) -> bool {
         self.current >= self.source.len()
     }
@@ -141,8 +232,44 @@ impl Scanner {
     }
 }
 
+fn is_digit(c: char) -> bool {
+    c >= '0' && c <= '9'
+}
+
+fn is_alpha(c: char) -> bool {
+    c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_'
+}
+
+fn is_alphanumeric(c: char) -> bool {
+    is_digit(c) || is_alpha(c)
+}
+
+fn keyword_map() -> HashMap<String, TokenType> {
+    [
+        ("and".to_string(), TokenType::And),
+        ("class".to_string(), TokenType::Class),
+        ("else".to_string(), TokenType::Else),
+        ("false".to_string(), TokenType::False),
+        ("for".to_string(), TokenType::For),
+        ("fun".to_string(), TokenType::Fun),
+        ("if".to_string(), TokenType::If),
+        ("nil".to_string(), TokenType::Nil),
+        ("or".to_string(), TokenType::Or),
+        ("print".to_string(), TokenType::Print),
+        ("return".to_string(), TokenType::Return),
+        ("super".to_string(), TokenType::Super),
+        ("this".to_string(), TokenType::This),
+        ("true".to_string(), TokenType::True),
+        ("var".to_string(), TokenType::Var),
+        ("while".to_string(), TokenType::While),
+    ]
+    .into_iter()
+    .collect()
+}
+
 #[derive(Debug, Clone)]
 pub enum ScannerError {
     /// An unreconized symbol was found
     UnrecognizedSymbol(u64, char),
+    UnterminatedString,
 }
