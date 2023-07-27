@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    token::{Literal, Token, TokenType},
-    Lox,
-};
+use crate::token::{Literal, Token, TokenType};
 
 pub struct Scanner {
     source: String,
