@@ -1,6 +1,8 @@
+pub mod ast;
+pub mod ast_struct_macros;
+pub mod ast_visitor;
 pub mod scanner;
 pub mod token;
-pub mod ast;
 
 use scanner::Scanner;
 
