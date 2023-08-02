@@ -73,6 +73,29 @@ pub enum Expr {
     Grouping(Box<Expr>),
 }
 
+
+pub enum ExprNodes {
+    Literal(Literals),
+    Unary(UnaryNode),
+    Binary(BinaryNode),
+    Grouping(GroupingNode),
+}
+
+pub struct UnaryNode {
+    operator: UnaryOperators,
+    right: ExprNodes,
+}
+
+pub struct BinaryNode {
+    left: ExprNodes,
+    operator: UnaryOperators,
+    right: ExprNodes,
+}
+
+pub struct GroupingNode {
+    inner: ExprNodes,
+}
+
 /// Literals
 #[derive(Debug)]
 pub enum Literals {

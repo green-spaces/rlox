@@ -20,6 +20,10 @@ pub trait AstAcceptor<V: AstVisitor> {
     fn accept(&self, visitor: &mut V) -> <V as AstVisitor>::Output;
 }
 
+pub trait AstAcceptor2 {
+    fn accept<O>(&self, visitor: Box<dyn AstVisitor>) -> String;
+}
+
 ///  A pretty printer for expressions
 pub struct PrettyPrinter {}
 

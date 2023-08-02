@@ -1,9 +1,11 @@
-pub mod ast;
-pub mod ast_struct_macros;
-pub mod ast_visitor;
+// pub mod ast;
+// pub mod ast_struct_macros;
+// pub mod ast_visitor;
 pub mod scanner;
 pub mod token;
-pub mod parser;
+// pub mod parser;
+pub mod ast_enum;
+pub mod enum_parser;
 
 use scanner::Scanner;
 
@@ -11,6 +13,11 @@ use std::{
     fs,
     io::{self, Write},
     process,
+};
+
+use crate::{
+    ast_enum::{AstNodeAccept, PrettyPrinter},
+    enum_parser::Parser,
 };
 
 /// A lox compiler and interpreter
@@ -52,12 +59,19 @@ impl Lox {
         let (tokens, errors) = scanner.scan_tokens();
         self.had_error = !errors.is_empty();
 
-        for token in tokens {
+        for token in tokens.iter() {
             println!("{token:?}");
         }
 
         println!("Found {} errors", errors.len());
         println!("{errors:#?}");
+
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse();
+
+        let pretty_print = PrettyPrinter {};
+        let ast_str = ast.accept(pretty_print);
+        println!("{ast_str}");
     }
 
     pub fn error(&mut self, line: u64, msg: String) {
