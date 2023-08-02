@@ -32,12 +32,12 @@ impl AstVisitor for PrettyPrinter {
     ) -> Self::Output {
         let left_str = binary.left.accept(self);
         let right_str = binary.right.accept(self);
-        format!("( {:?} {left_str} {right_str} )", binary.operator)
+        format!("( {:?} {left_str} {right_str} )", binary.operator.lexeme)
     }
 
     fn visit_unary<R: AstAcceptor<Self>>(&mut self, unary: &UnaryExpr<R>) -> Self::Output {
         let right_str = unary.right.accept(self);
-        format!("( {:?} {right_str} )", unary.operator)
+        format!("( {:?} {right_str} )", unary.operator.lexeme)
     }
 
     fn visit_literal(&mut self, literal: &LiteralExpr) -> Self::Output {

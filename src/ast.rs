@@ -3,11 +3,11 @@
 use std::boxed::Box;
 
 use super::ast_visitor::AstAcceptor;
-use crate::ast_visitor::AstVisitor;
+use crate::{ast_visitor::AstVisitor, token::Token};
 
 pub struct BinaryExpr<L, R> {
     pub left: L,
-    pub operator: BinaryOperators,
+    pub operator: Token,
     pub right: R,
 }
 
@@ -37,7 +37,7 @@ where
 }
 
 pub struct UnaryExpr<R> {
-    pub operator: UnaryOperators,
+    pub operator: Token,
     pub right: R,
 }
 

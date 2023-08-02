@@ -1,9 +1,9 @@
 #[derive(Debug, Clone)]
 pub struct Token {
-    t_type: TokenType,
-    lexeme: String,
-    literal: Literal,
-    line: u64,
+    pub t_type: TokenType,
+    pub lexeme: String,
+    pub literal: Literal,
+    pub line: u64,
 }
 
 impl Token {
@@ -33,7 +33,7 @@ pub enum Literal {
     Number(f64),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
