@@ -125,6 +125,6 @@ impl AstNodeVisitor for PrettyPrinter {
 
     fn visit_grouping(&self, grouping: &GroupingNode) -> Self::Output {
         let expr_str = grouping.inner.accept(*self);
-        format!("group {expr_str} ")
+        format!("( group {expr_str} )")
     }
 }

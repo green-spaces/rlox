@@ -102,7 +102,7 @@ impl Parser {
         if self.matches(&[TokenType::LeftParen]) {
             let expr = self.expression();
             self.consume(TokenType::RightParen, "Expect \')\' after expression");
-            return expr;
+            return ExprNode::new_grouping(expr);
         }
 
         unreachable!("One of the primary if statments should have matched")
