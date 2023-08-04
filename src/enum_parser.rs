@@ -1,7 +1,9 @@
 use crate::{
-    ast_enum::ExprNode,
-    token::{Token, TokenType},
+    ast_enum::{BinaryNode, ExprNode, GroupingNode, LiteralNode},
+    token::{Token, TokenLiteral, TokenType},
 };
+
+use super::SyntaxError;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -13,27 +15,27 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> ExprNode {
+    pub fn parse(&mut self) -> Result<ExprNode, SyntaxError> {
         self.expression()
     }
 
-    fn expression(&mut self) -> ExprNode {
+    fn expression(&mut self) -> Result<ExprNode, SyntaxError> {
         self.equality()
     }
 
-    fn equality(&mut self) -> ExprNode {
-        let mut expr = self.comparison();
+    fn equality(&mut self) -> Result<ExprNode, SyntaxError> {
+        let mut expr = self.comparison()?;
 
         while self.matches(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous().clone();
-            let right = self.comparison();
+            let right = self.comparison()?;
             expr = ExprNode::new_binary(expr, operator, right);
         }
-        expr
+        Ok(expr)
     }
 
-    fn comparison(&mut self) -> ExprNode {
-        let mut expr = self.term();
+    fn comparison(&mut self) -> Result<ExprNode, SyntaxError> {
+        let mut expr = self.term()?;
         while self.matches(&[
             TokenType::Greater,
             TokenType::GreaterEqual,
@@ -41,71 +43,72 @@ impl Parser {
             TokenType::LessEqual,
         ]) {
             let operator = self.previous().clone();
-            let right = self.term();
+            let right = self.term()?;
             expr = ExprNode::new_binary(expr, operator, right);
         }
-        expr
+        Ok(expr)
     }
 
-    fn term(&mut self) -> ExprNode {
-        let mut expr = self.factor();
+    fn term(&mut self) -> Result<ExprNode, SyntaxError> {
+        let mut expr = self.factor()?;
         while self.matches(&[TokenType::Plus, TokenType::Minus]) {
             let operator = self.previous().clone();
-            let right = self.factor();
+            let right = self.factor()?;
             expr = ExprNode::new_binary(expr, operator, right);
         }
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> ExprNode {
-        let mut expr = self.unary();
+    fn factor(&mut self) -> Result<ExprNode, SyntaxError> {
+        let mut expr = self.unary()?;
         while self.matches(&[TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().clone();
-            let right = self.unary();
+            let right = self.unary()?;
             expr = ExprNode::new_binary(expr, operator, right);
         }
-        expr
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> ExprNode {
+    fn unary(&mut self) -> Result<ExprNode, SyntaxError> {
         if self.matches(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
-            let right = self.unary();
-            return ExprNode::new_unary(operator, right);
+            let right = self.unary()?;
+            return Ok(ExprNode::new_unary(operator, right));
         }
         self.primary()
     }
 
-    fn primary(&mut self) -> ExprNode {
+    fn primary(&mut self) -> Result<ExprNode, SyntaxError> {
         if self.matches(&[TokenType::False]) {
-            return ExprNode::Literal(crate::ast_enum::LiteralNode::False);
+            return Ok(ExprNode::Literal(LiteralNode::False));
         }
 
         if self.matches(&[TokenType::True]) {
-            return ExprNode::Literal(crate::ast_enum::LiteralNode::True);
+            return Ok(ExprNode::Literal(LiteralNode::True));
         }
         if self.matches(&[TokenType::Nil]) {
-            return ExprNode::Literal(crate::ast_enum::LiteralNode::Nil);
+            return Ok(ExprNode::Literal(LiteralNode::Nil));
         }
         if self.matches(&[TokenType::Number, TokenType::String]) {
             match &self.previous().literal {
-                crate::token::Literal::Number(n) => {
-                    return ExprNode::Literal(crate::ast_enum::LiteralNode::Number(*n));
+                TokenLiteral::Number(n) => {
+                    return Ok(ExprNode::Literal(LiteralNode::Number(*n)));
                 }
-                crate::token::Literal::String(s) => {
-                    return ExprNode::Literal(crate::ast_enum::LiteralNode::String(s.clone()));
+                TokenLiteral::String(s) => {
+                    return Ok(ExprNode::Literal(LiteralNode::String(s.clone())));
                 }
-                _ => panic!("Shouldnt be none"),
+                _ => panic!("Shouldnt be None"),
             }
         }
 
         if self.matches(&[TokenType::LeftParen]) {
-            let expr = self.expression();
+            let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect \')\' after expression");
-            return ExprNode::new_grouping(expr);
+            return Ok(ExprNode::new_grouping(expr));
         }
 
-        unreachable!("One of the primary if statments should have matched")
+        let next = self.peek();
+        Err(SyntaxError::UnmatchedToken(next.clone()))
     }
 
     // TODO Should return token

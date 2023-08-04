@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::token::{Literal, Token, TokenType};
+use crate::token::{Token, TokenLiteral, TokenType};
 
 pub struct Scanner {
     source: String,
@@ -32,13 +32,21 @@ impl Scanner {
         }
     }
 
+    /// Scans all the tokens, returns all tokens and errors found in the source
     pub fn scan_tokens(&mut self) -> (Vec<Token>, Vec<ScannerError>) {
+        // Consume all the tokens in a single scan
         while !self.is_eof() {
+            // Reset start so add_token knows where to start the token from
             self.start = self.current;
             self.scan_token();
         }
 
-        let eof_token = Token::new(TokenType::Eof, "".to_string(), Literal::None, self.line);
+        let eof_token = Token::new(
+            TokenType::Eof,
+            "".to_string(),
+            TokenLiteral::None,
+            self.line,
+        );
         self.tokens.push(eof_token);
 
         (self.tokens.clone(), self.errors.clone())
@@ -47,42 +55,42 @@ impl Scanner {
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
-            '(' => self.add_token(TokenType::LeftParen, Literal::None),
-            ')' => self.add_token(TokenType::RightParen, Literal::None),
-            '{' => self.add_token(TokenType::LeftBrace, Literal::None),
-            '}' => self.add_token(TokenType::RightBrace, Literal::None),
-            ',' => self.add_token(TokenType::Comma, Literal::None),
-            '.' => self.add_token(TokenType::Dot, Literal::None),
-            '-' => self.add_token(TokenType::Minus, Literal::None),
-            '+' => self.add_token(TokenType::Plus, Literal::None),
-            ';' => self.add_token(TokenType::Semicolon, Literal::None),
-            '*' => self.add_token(TokenType::Star, Literal::None),
+            '(' => self.add_token(TokenType::LeftParen, TokenLiteral::None),
+            ')' => self.add_token(TokenType::RightParen, TokenLiteral::None),
+            '{' => self.add_token(TokenType::LeftBrace, TokenLiteral::None),
+            '}' => self.add_token(TokenType::RightBrace, TokenLiteral::None),
+            ',' => self.add_token(TokenType::Comma, TokenLiteral::None),
+            '.' => self.add_token(TokenType::Dot, TokenLiteral::None),
+            '-' => self.add_token(TokenType::Minus, TokenLiteral::None),
+            '+' => self.add_token(TokenType::Plus, TokenLiteral::None),
+            ';' => self.add_token(TokenType::Semicolon, TokenLiteral::None),
+            '*' => self.add_token(TokenType::Star, TokenLiteral::None),
             '!' => {
                 if self.match_char('=') {
-                    self.add_token(TokenType::BangEqual, Literal::None);
+                    self.add_token(TokenType::BangEqual, TokenLiteral::None);
                 } else {
-                    self.add_token(TokenType::Bang, Literal::None);
+                    self.add_token(TokenType::Bang, TokenLiteral::None);
                 }
             }
             '=' => {
                 if self.match_char('=') {
-                    self.add_token(TokenType::EqualEqual, Literal::None);
+                    self.add_token(TokenType::EqualEqual, TokenLiteral::None);
                 } else {
-                    self.add_token(TokenType::Equal, Literal::None);
+                    self.add_token(TokenType::Equal, TokenLiteral::None);
                 }
             }
             '>' => {
                 if self.match_char('=') {
-                    self.add_token(TokenType::GreaterEqual, Literal::None);
+                    self.add_token(TokenType::GreaterEqual, TokenLiteral::None);
                 } else {
-                    self.add_token(TokenType::Greater, Literal::None);
+                    self.add_token(TokenType::Greater, TokenLiteral::None);
                 }
             }
             '<' => {
                 if self.match_char('=') {
-                    self.add_token(TokenType::LessEqual, Literal::None);
+                    self.add_token(TokenType::LessEqual, TokenLiteral::None);
                 } else {
-                    self.add_token(TokenType::Less, Literal::None);
+                    self.add_token(TokenType::Less, TokenLiteral::None);
                 }
             }
             '/' => {
@@ -111,7 +119,7 @@ impl Scanner {
                         let _ = self.advance();
                     }
                 } else {
-                    self.add_token(TokenType::Slash, Literal::None);
+                    self.add_token(TokenType::Slash, TokenLiteral::None);
                 }
             }
             ' ' | '\t' | '\r' => {}
@@ -125,6 +133,7 @@ impl Scanner {
         }
     }
 
+    /// Consumes the next char in the source
     fn advance(&mut self) -> char {
         // TODO This assumes utf8 encoding and is suspect
         let c = self.source.as_bytes()[self.current].into();
@@ -132,6 +141,7 @@ impl Scanner {
         c
     }
 
+    /// Gets the next character without consuming it
     fn peek(&self) -> char {
         if self.is_eof() {
             '\n'
@@ -140,6 +150,7 @@ impl Scanner {
         }
     }
 
+    /// Gets the next next character without consuming it
     fn peek_next(&self) -> char {
         if self.is_eof() {
             '\n'
@@ -165,6 +176,9 @@ impl Scanner {
         true
     }
 
+    /// Tokenizes string literals
+    ///
+    /// String literals can span multiple lines
     fn tokenize_string_literal(&mut self) {
         while self.peek() != '"' && !self.is_eof() {
             if self.peek() == '\n' {
@@ -174,21 +188,26 @@ impl Scanner {
         }
 
         if self.is_eof() {
-            self.errors.push(ScannerError::UnterminatedString);
+            self.errors
+                .push(ScannerError::UnterminatedString(self.line));
             return;
         }
 
         // Consume the '"'
         let _ = self.advance();
 
+        // Get the stirng without the quotes
         let value = self
             .source
             .get((self.start + 1)..(self.current - 1))
             .unwrap()
             .to_string();
-        self.add_token(TokenType::String, Literal::String(value));
+        self.add_token(TokenType::String, TokenLiteral::String(value));
     }
 
+    /// Tokenizes number literals.
+    ///
+    /// Forms: 42 or 42.24
     fn tokenize_number_literal(&mut self) {
         while is_digit(self.peek()) {
             let _ = self.advance();
@@ -202,9 +221,17 @@ impl Scanner {
         }
 
         let value = self.source.get(self.start..self.current).unwrap();
-        self.add_token(TokenType::Number, Literal::Number(value.parse().unwrap()));
+        self.add_token(
+            TokenType::Number,
+            TokenLiteral::Number(value.parse().unwrap()),
+        );
     }
 
+    /// Consumes all the chareacters that are attached to an identifier token
+    ///
+    /// Identifier tokens can be keywords or user defined identifiers
+    ///
+    /// Identifiers must start with a alpha character and contain alphanumeric chars
     fn tokenize_identifier(&mut self) {
         while is_alphanumeric(self.peek()) {
             let _ = self.advance();
@@ -215,14 +242,17 @@ impl Scanner {
             .get(maybe_keyword)
             .cloned()
             .unwrap_or(TokenType::Identifier);
-        self.add_token(t_type, Literal::None)
+        self.add_token(t_type, TokenLiteral::None)
     }
 
     fn is_eof(&self) -> bool {
         self.current >= self.source.len()
     }
 
-    fn add_token(&mut self, t_type: TokenType, literal: Literal) {
+    /// Creates the token and adds it to the list of known tokens
+    ///
+    /// Includes the line of the source code the token is on and the exact lexeme
+    fn add_token(&mut self, t_type: TokenType, literal: TokenLiteral) {
         let lexeme = self.source.get(self.start..self.current).unwrap().into();
         let token = Token::new(t_type, lexeme, literal, self.line);
         self.tokens.push(token);
@@ -268,5 +298,5 @@ fn keyword_map() -> HashMap<String, TokenType> {
 pub enum ScannerError {
     /// An unreconized symbol was found
     UnrecognizedSymbol(u64, char),
-    UnterminatedString,
+    UnterminatedString(u64),
 }

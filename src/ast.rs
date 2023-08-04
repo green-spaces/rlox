@@ -89,11 +89,11 @@ pub struct UnaryNode {
 pub struct BinaryNode {
     left: ExprNodes,
     operator: UnaryOperators,
-    right: ExprNodes,
+    right: Expr,
 }
 
 pub struct GroupingNode {
-    inner: ExprNodes,
+    inner: Expr,
 }
 
 /// Literals

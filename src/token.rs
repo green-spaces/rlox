@@ -2,12 +2,12 @@
 pub struct Token {
     pub t_type: TokenType,
     pub lexeme: String,
-    pub literal: Literal,
+    pub literal: TokenLiteral,
     pub line: u64,
 }
 
 impl Token {
-    pub fn new(t_type: TokenType, lexeme: String, literal: Literal, line: u64) -> Self {
+    pub fn new(t_type: TokenType, lexeme: String, literal: TokenLiteral, line: u64) -> Self {
         Self {
             t_type,
             lexeme,
@@ -27,7 +27,7 @@ impl std::fmt::Display for Token {
 }
 
 #[derive(Debug, Clone)]
-pub enum Literal {
+pub enum TokenLiteral {
     None,
     String(String),
     Number(f64),

@@ -6,8 +6,12 @@ pub mod token;
 // pub mod parser;
 pub mod ast_enum;
 pub mod enum_parser;
+pub mod error;
+pub mod reverse_polish_notation_visitor;
 
-use scanner::Scanner;
+use error::{RunTimeError, SyntaxError};
+
+use scanner::{Scanner, ScannerError};
 
 use std::{
     fs,
@@ -18,6 +22,7 @@ use std::{
 use crate::{
     ast_enum::{AstNodeAccept, PrettyPrinter},
     enum_parser::Parser,
+    reverse_polish_notation_visitor::Rpn,
 };
 
 /// A lox compiler and interpreter
@@ -63,15 +68,28 @@ impl Lox {
             println!("{token:?}");
         }
 
-        println!("Found {} errors", errors.len());
-        println!("{errors:#?}");
+        for err in errors {
+            match err {
+                ScannerError::UnrecognizedSymbol(line, char) => {
+                    self.error(line, format!("unreconized character: {char}"))
+                }
+                ScannerError::UnterminatedString(line) => self.error(
+                    line,
+                    format!("Unmatch string literal started. Expected closing '\"'"),
+                ),
+            }
+        }
 
         let mut parser = Parser::new(tokens);
-        let ast = parser.parse();
+        let ast = parser.parse().unwrap();
 
         let pretty_print = PrettyPrinter {};
         let ast_str = ast.accept(pretty_print);
         println!("{ast_str}");
+
+        let rpn = Rpn {};
+        let rpn_str = ast.accept(rpn);
+        println!("{rpn_str}");
     }
 
     pub fn error(&mut self, line: u64, msg: String) {
@@ -81,7 +99,7 @@ impl Lox {
     fn report(&mut self, line: u64, location: String, msg: String) {
         let mut stderr = io::stderr();
         stderr
-            .write_all(format!("[line {line}] Error {location}: {msg}").as_bytes())
+            .write_all(format!("[line {line}] Error {location}: {msg}\n").as_bytes())
             .unwrap();
         stderr.flush().unwrap();
 
