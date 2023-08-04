@@ -81,15 +81,15 @@ impl Lox {
         }
 
         let mut parser = Parser::new(tokens);
-        let ast = parser.parse().unwrap();
+        let Ok(ast) = parser.parse() else { return; };
 
         let pretty_print = PrettyPrinter {};
         let ast_str = ast.accept(pretty_print);
         println!("{ast_str}");
 
-        let rpn = Rpn {};
-        let rpn_str = ast.accept(rpn);
-        println!("{rpn_str}");
+        //        let rpn = Rpn {};
+        //        let rpn_str = ast.accept(rpn);
+        //        println!("{rpn_str}");
     }
 
     pub fn error(&mut self, line: u64, msg: String) {

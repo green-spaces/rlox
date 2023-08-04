@@ -1,3 +1,5 @@
+use std::io::{self, Write};
+
 use crate::{
     ast_enum::{BinaryNode, ExprNode, GroupingNode, LiteralNode},
     token::{Token, TokenLiteral, TokenType},
@@ -16,7 +18,46 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<ExprNode, SyntaxError> {
-        self.expression()
+        let res = self.expression();
+        // Error reporting
+        match &res {
+            Err(SyntaxError::UnmatchedToken(token)) => {
+                self.report(token.line, "", "Unexpected token");
+            }
+            Err(SyntaxError::ExpectedToken(_, token, msg)) => {
+                self.report(token.line, "", &msg);
+            }
+            Ok(_) => {}
+        }
+        res
+    }
+
+    fn syncchronize(&mut self) {
+        let _ = self.advance();
+        while !self.is_at_end() {
+            // Semicolon clearly indicates we have found the end of the current statement
+            if self.previous().t_type == TokenType::Semicolon {
+                return;
+            }
+
+            // Keywords that start statements
+            if [
+                TokenType::Class,
+                TokenType::For,
+                TokenType::Fun,
+                TokenType::If,
+                TokenType::Print,
+                TokenType::Return,
+                TokenType::Var,
+                TokenType::While,
+            ]
+            .contains(&self.peek().t_type)
+            {
+                return;
+            }
+
+            let _ = self.advance();
+        }
     }
 
     fn expression(&mut self) -> Result<ExprNode, SyntaxError> {
@@ -103,7 +144,7 @@ impl Parser {
 
         if self.matches(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
-            self.consume(TokenType::RightParen, "Expect \')\' after expression");
+            self.consume(TokenType::RightParen, "Expect \')\' after expression")?;
             return Ok(ExprNode::new_grouping(expr));
         }
 
@@ -111,17 +152,25 @@ impl Parser {
         Err(SyntaxError::UnmatchedToken(next.clone()))
     }
 
-    // TODO Should return token
-    fn consume(&mut self, tt: TokenType, err_msg: &str) {
+    fn consume(&mut self, tt: TokenType, err_msg: &str) -> Result<(), SyntaxError> {
         if self.check(&tt) {
             let _ = self.advance();
+            Ok(())
         } else {
-            self.report(err_msg);
+            Err(SyntaxError::ExpectedToken(
+                tt,
+                self.peek().clone(),
+                err_msg.to_string(),
+            ))
         }
     }
 
-    fn report(&mut self, msg: &str) {
-        todo!();
+    fn report(&mut self, line: u64, location: &str, msg: &str) {
+        let mut stderr = io::stderr();
+        stderr
+            .write_all(format!("[line {line}] Error {location}: {msg}\n").as_bytes())
+            .unwrap();
+        stderr.flush().unwrap();
     }
 
     fn matches(&mut self, ops: &[TokenType]) -> bool {
