@@ -7,11 +7,7 @@ pub mod token;
 pub mod ast_enum;
 pub mod enum_parser;
 pub mod error;
-pub mod reverse_polish_notation_visitor;
-
-use error::{RunTimeError, SyntaxError};
-
-use scanner::{Scanner, ScannerError};
+mod reverse_polish_notation_visitor;
 
 use std::{
     fs,
@@ -19,11 +15,14 @@ use std::{
     process,
 };
 
+pub use error::{RunTimeError, SyntaxError};
+use scanner::{Scanner, ScannerError};
+
 use crate::{
     ast_enum::{AstNodeAccept, PrettyPrinter},
     enum_parser::Parser,
-    reverse_polish_notation_visitor::Rpn,
 };
+pub use reverse_polish_notation_visitor::Rpn;
 
 /// A lox compiler and interpreter
 #[derive(Debug)]
@@ -64,10 +63,6 @@ impl Lox {
         let (tokens, errors) = scanner.scan_tokens();
         self.had_error = !errors.is_empty();
 
-        for token in tokens.iter() {
-            println!("{token:?}");
-        }
-
         for err in errors {
             match err {
                 ScannerError::UnrecognizedSymbol(line, char) => {
@@ -81,7 +76,10 @@ impl Lox {
         }
 
         let mut parser = Parser::new(tokens);
-        let Ok(ast) = parser.parse() else { return; };
+        let Ok(ast) = parser.parse() else {
+            self.had_error = true;
+            return;
+        };
 
         let pretty_print = PrettyPrinter {};
         let ast_str = ast.accept(pretty_print);

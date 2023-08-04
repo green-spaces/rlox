@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 
 use crate::{
-    ast_enum::{BinaryNode, ExprNode, GroupingNode, LiteralNode},
+    ast_enum::{ExprNode, LiteralNode},
     token::{Token, TokenLiteral, TokenType},
 };
 
@@ -18,7 +18,8 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<ExprNode, SyntaxError> {
-        let res = self.expression();
+        //let res = self.expression();
+        let res = self.comma_expression();
         // Error reporting
         match &res {
             Err(SyntaxError::UnmatchedToken(token, msg)) => {
@@ -32,6 +33,7 @@ impl Parser {
         res
     }
 
+    #[allow(dead_code)]
     fn syncchronize(&mut self) {
         let _ = self.advance();
         while !self.is_at_end() {
@@ -58,6 +60,22 @@ impl Parser {
 
             let _ = self.advance();
         }
+    }
+
+    /// Allows multiple expressions to be placed where only a single one is expected
+    ///
+    /// The left expression is evalueated and then discaded if a comma exists. The right most
+    /// expression is returned
+    ///
+    /// Eg comma expr: expr (,expr)*
+    fn comma_expression(&mut self) -> Result<ExprNode, SyntaxError> {
+        let mut expr = self.expression()?;
+
+        while self.matches(&[TokenType::Comma]) {
+            expr = self.expression()?;
+        }
+
+        Ok(expr)
     }
 
     fn expression(&mut self) -> Result<ExprNode, SyntaxError> {
