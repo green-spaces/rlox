@@ -21,8 +21,8 @@ impl Parser {
         let res = self.expression();
         // Error reporting
         match &res {
-            Err(SyntaxError::UnmatchedToken(token)) => {
-                self.report(token.line, "", "Unexpected token");
+            Err(SyntaxError::UnmatchedToken(token, msg)) => {
+                self.report(token.line, "", &msg);
             }
             Err(SyntaxError::ExpectedToken(_, token, msg)) => {
                 self.report(token.line, "", &msg);
@@ -149,7 +149,10 @@ impl Parser {
         }
 
         let next = self.peek();
-        Err(SyntaxError::UnmatchedToken(next.clone()))
+        Err(SyntaxError::UnmatchedToken(
+            next.clone(),
+            "Expected expression".to_string(),
+        ))
     }
 
     fn consume(&mut self, tt: TokenType, err_msg: &str) -> Result<(), SyntaxError> {
