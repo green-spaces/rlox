@@ -9,4 +9,6 @@ pub enum SyntaxError {
 }
 
 #[derive(Debug, Clone)]
-pub enum RunTimeError {}
+pub enum RunTimeError {
+    InvalidBangValue(Token, String),
+}

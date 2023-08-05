@@ -2,6 +2,7 @@ use std::io::{self, Write};
 
 use crate::{
     ast_enum::{ExprNode, LiteralNode},
+    enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut},
     token::{Token, TokenLiteral, TokenType},
 };
 
@@ -17,20 +18,22 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<ExprNode, SyntaxError> {
+    pub fn parse(&mut self) -> Result<Vec<StmtNode>, SyntaxError> {
         //let res = self.expression();
-        let res = self.comma_expression();
-        // Error reporting
-        match &res {
-            Err(SyntaxError::UnmatchedToken(token, msg)) => {
-                self.report(token.line, "", &msg);
+        let mut stmts = Vec::new();
+        while !self.is_at_end() {
+            match self.statement() {
+                Err(SyntaxError::UnmatchedToken(token, msg)) => {
+                    self.report(token.line, "", &msg);
+                }
+                Err(SyntaxError::ExpectedToken(_, token, msg)) => {
+                    self.report(token.line, "", &msg);
+                }
+                Ok(stmt) => stmts.push(stmt),
             }
-            Err(SyntaxError::ExpectedToken(_, token, msg)) => {
-                self.report(token.line, "", &msg);
-            }
-            Ok(_) => {}
         }
-        res
+        // TODO Do I need to return a copy of the errors here too?
+        Ok(stmts)
     }
 
     #[allow(dead_code)]
@@ -62,6 +65,27 @@ impl Parser {
         }
     }
 
+    fn statement(&mut self) -> Result<StmtNode, SyntaxError> {
+        if self.matches(&[TokenType::Print]) {
+            return self.print_statement();
+        }
+
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<StmtNode, SyntaxError> {
+        let expr = self.comma_expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';'")?;
+        return Ok(StmtNode::Print(expr));
+    }
+
+    fn expression_statement(&mut self) -> Result<StmtNode, SyntaxError> {
+        let expr = self.comma_expression()?;
+
+        self.consume(TokenType::Semicolon, "Expected ';'")?;
+        Ok(StmtNode::Expr(expr))
+    }
+
     /// Allows multiple expressions to be placed where only a single one is expected
     ///
     /// The left expression is evalueated and then discaded if a comma exists. The right most
@@ -69,6 +93,8 @@ impl Parser {
     ///
     /// Eg comma expr: expr (,expr)*
     fn comma_expression(&mut self) -> Result<ExprNode, SyntaxError> {
+        // TODO Is this the correct functionality? The expression is remove but it will never be
+        // evaluated
         let mut expr = self.expression()?;
 
         while self.matches(&[TokenType::Comma]) {

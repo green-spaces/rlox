@@ -1,12 +1,14 @@
 // pub mod ast;
 // pub mod ast_struct_macros;
 // pub mod ast_visitor;
-pub mod scanner;
-pub mod token;
+mod scanner;
+mod token;
 // pub mod parser;
-pub mod ast_enum;
+mod ast_enum;
 pub mod enum_parser;
+mod enum_stmt;
 pub mod error;
+mod interpreter;
 mod reverse_polish_notation_visitor;
 
 use std::{
@@ -19,8 +21,9 @@ pub use error::{RunTimeError, SyntaxError};
 use scanner::{Scanner, ScannerError};
 
 use crate::{
-    ast_enum::{AstNodeAccept, PrettyPrinter},
+    ast_enum::{AstNodeAccept, ExprAcceptMut, PrettyPrinter},
     enum_parser::Parser,
+    interpreter::Interpreter,
 };
 pub use reverse_polish_notation_visitor::Rpn;
 
@@ -81,13 +84,14 @@ impl Lox {
             return;
         };
 
-        let pretty_print = PrettyPrinter {};
-        let ast_str = ast.accept(pretty_print);
-        println!("{ast_str}");
+        // let pretty_print = PrettyPrinter {};
+        // let ast_str = ast.accept(pretty_print);
 
-        //        let rpn = Rpn {};
-        //        let rpn_str = ast.accept(rpn);
-        //        println!("{rpn_str}");
+        let mut interpreter = Interpreter::new();
+        if let Err(output) = interpreter.interpret(ast) {
+            self.had_error = true;
+            println!("{output:?}");
+        }
     }
 
     pub fn error(&mut self, line: u64, msg: String) {

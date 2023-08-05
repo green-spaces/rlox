@@ -24,6 +24,31 @@ impl<V: AstNodeVisitor> AstNodeAccept<V> for ExprNode {
     }
 }
 
+pub trait ExprVisitorMut {
+    type Output;
+
+    fn visit_literal(&mut self, value: &LiteralNode) -> Self::Output;
+    fn visit_unary(&mut self, value: &UnaryNode) -> Self::Output;
+    fn visit_binary(&mut self, value: &BinaryNode) -> Self::Output;
+    fn visit_grouping(&mut self, value: &GroupingNode) -> Self::Output;
+}
+
+pub trait ExprAcceptMut<V: ExprVisitorMut> {
+    fn accept_mut(&self, visitor: &mut V) -> <V as ExprVisitorMut>::Output;
+}
+
+impl<V: ExprVisitorMut> ExprAcceptMut<V> for ExprNode {
+    fn accept_mut(&self, visitor: &mut V) -> <V as ExprVisitorMut>::Output {
+        match self {
+            Self::Literal(l) => visitor.visit_literal(&l),
+            Self::Unary(u) => visitor.visit_unary(&u),
+            Self::Binary(b) => visitor.visit_binary(&b),
+            Self::Grouping(g) => visitor.visit_grouping(&g),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum ExprNode {
     Literal(LiteralNode),
     Unary(UnaryNode),
@@ -54,17 +79,20 @@ impl ExprNode {
     }
 }
 
+#[derive(Debug)]
 pub struct UnaryNode {
     pub operator: Token,
     pub right: Box<ExprNode>,
 }
 
+#[derive(Debug)]
 pub struct BinaryNode {
     pub left: Box<ExprNode>,
     pub operator: Token,
     pub right: Box<ExprNode>,
 }
 
+#[derive(Debug)]
 pub struct GroupingNode {
     pub inner: Box<ExprNode>,
 }
