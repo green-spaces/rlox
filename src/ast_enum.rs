@@ -4,6 +4,7 @@ pub trait AstNodeVisitor {
     type Output;
 
     fn visit_variable(&self, value: &Token) -> Self::Output;
+    fn visit_assign(&self, value: &AssignNode) -> Self::Output;
     fn visit_literal(&self, value: &LiteralNode) -> Self::Output;
     fn visit_unary(&self, value: &UnaryNode) -> Self::Output;
     fn visit_binary(&self, value: &BinaryNode) -> Self::Output;
@@ -18,6 +19,7 @@ impl<V: AstNodeVisitor> AstNodeAccept<V> for ExprNode {
     fn accept(&self, visitor: V) -> <V as AstNodeVisitor>::Output {
         match self {
             Self::Variable(t) => visitor.visit_variable(t),
+            Self::Assign(t) => visitor.visit_assign(t),
             Self::Literal(l) => visitor.visit_literal(l),
             Self::Unary(u) => visitor.visit_unary(u),
             Self::Binary(b) => visitor.visit_binary(b),
@@ -34,6 +36,7 @@ pub trait ExprVisitorMut {
     fn visit_binary(&mut self, value: &BinaryNode) -> Self::Output;
     fn visit_grouping(&mut self, value: &GroupingNode) -> Self::Output;
     fn visit_variable(&mut self, value: &Token) -> Self::Output;
+    fn visit_assign(&mut self, node: &AssignNode) -> Self::Output;
 }
 
 pub trait ExprAcceptMut<V: ExprVisitorMut> {
@@ -44,6 +47,7 @@ impl<V: ExprVisitorMut> ExprAcceptMut<V> for ExprNode {
     fn accept_mut(&self, visitor: &mut V) -> <V as ExprVisitorMut>::Output {
         match self {
             Self::Variable(t) => visitor.visit_variable(t),
+            Self::Assign(a) => visitor.visit_assign(a),
             Self::Literal(l) => visitor.visit_literal(l),
             Self::Unary(u) => visitor.visit_unary(u),
             Self::Binary(b) => visitor.visit_binary(b),
@@ -55,6 +59,7 @@ impl<V: ExprVisitorMut> ExprAcceptMut<V> for ExprNode {
 #[derive(Debug)]
 pub enum ExprNode {
     Variable(Token),
+    Assign(AssignNode),
     Literal(LiteralNode),
     Unary(UnaryNode),
     Binary(BinaryNode),
@@ -62,6 +67,13 @@ pub enum ExprNode {
 }
 
 impl ExprNode {
+    pub fn new_assign(name: Token, value: ExprNode) -> Self {
+        Self::Assign(AssignNode {
+            name,
+            value: Box::new(value),
+        })
+    }
+
     pub fn new_unary(operator: Token, right: ExprNode) -> Self {
         Self::Unary(UnaryNode {
             operator,
@@ -86,6 +98,12 @@ impl ExprNode {
     pub fn new_variable(token: Token) -> Self {
         Self::Variable(token)
     }
+}
+
+#[derive(Debug)]
+pub struct AssignNode {
+    pub name: Token,
+    pub value: Box<ExprNode>,
 }
 
 #[derive(Debug)]
@@ -152,6 +170,10 @@ impl AstNodeVisitor for PrettyPrinter {
     type Output = String;
 
     fn visit_variable(&self, value: &Token) -> Self::Output {
+        todo!()
+    }
+
+    fn visit_assign(&self, value: &AssignNode) -> Self::Output {
         todo!()
     }
 

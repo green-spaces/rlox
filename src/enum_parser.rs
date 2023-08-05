@@ -30,6 +30,10 @@ impl Parser {
                     self.report(token.line, &token.lexeme, &msg);
                     self.syncchronize();
                 }
+                Err(SyntaxError::InvalidAssignment(token)) => {
+                    self.report(token.line, "", "Invalid assignement target");
+                    self.syncchronize();
+                }
             }
         }
         // TODO Do I need to return a copy of the errors here too?
@@ -81,7 +85,7 @@ impl Parser {
         }
 
         self.consume(TokenType::Semicolon, "Expected ':'")?;
-        Ok(StmtNode::Var(VarNode::new(name, initializer)))
+        Ok(StmtNode::VarDec(VarNode::new(name, initializer)))
     }
 
     fn statement(&mut self) -> Result<StmtNode, SyntaxError> {
@@ -124,7 +128,28 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<ExprNode, SyntaxError> {
-        self.equality()
+        self.assignment()
+    }
+
+    // TODO Study this, the logic is a little convoluted
+    // https://craftinginterpreters.com/statements-and-state.html#assignment-syntax
+    fn assignment(&mut self) -> Result<ExprNode, SyntaxError> {
+        let expr = self.equality()?;
+
+        if self.matches(&[TokenType::Equal]) {
+            let equals = self.previous().clone();
+            let value = self.assignment()?;
+
+            match expr {
+                ExprNode::Variable(name) => {
+                    return Ok(ExprNode::new_assign(name.clone(), value));
+                }
+                _ => {
+                    return Err(SyntaxError::InvalidAssignment(equals));
+                }
+            }
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<ExprNode, SyntaxError> {

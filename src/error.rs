@@ -6,6 +6,7 @@ pub enum SyntaxError {
     UnmatchedToken(Token, String),
     /// Contains the expected token type, the token found, the a message
     ExpectedToken(TokenType, Token, String),
+    InvalidAssignment(Token),
 }
 
 #[derive(Debug, Clone)]

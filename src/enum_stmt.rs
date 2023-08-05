@@ -4,7 +4,7 @@ use crate::{ast_enum::ExprNode, token::Token, RunTimeError};
 pub enum StmtNode {
     Print(ExprNode),
     Expr(ExprNode),
-    Var(VarNode),
+    VarDec(VarNode),
 }
 
 pub trait StmtAcceptorMut<V: StmtVisitorMut> {
@@ -27,7 +27,7 @@ where
         match self {
             Self::Print(expr) => visitor.visit_print(expr),
             Self::Expr(expr) => visitor.visit_expr(expr),
-            Self::Var(node) => visitor.visit_var_dec(node),
+            Self::VarDec(node) => visitor.visit_var_dec(node),
         }
     }
 }
@@ -35,11 +35,11 @@ where
 #[derive(Debug)]
 pub struct VarNode {
     pub name: Token,
-    pub initializer: ExprNode,
+    pub value_expr: ExprNode,
 }
 
 impl VarNode {
-    pub fn new(name: Token, initializer: ExprNode) -> Self {
-        Self { name, initializer }
+    pub fn new(name: Token, value_expr: ExprNode) -> Self {
+        Self { name, value_expr }
     }
 }

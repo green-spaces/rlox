@@ -1,7 +1,7 @@
 use crate::{
     ast_enum::{
-        AstNodeAccept, BinaryNode, ExprAcceptMut, ExprNode, ExprVisitorMut, GroupingNode,
-        LiteralNode, UnaryNode,
+        AssignNode, AstNodeAccept, BinaryNode, ExprAcceptMut, ExprNode, ExprVisitorMut,
+        GroupingNode, LiteralNode, UnaryNode,
     },
     enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
     environment::Environment,
@@ -69,15 +69,27 @@ impl StmtVisitorMut for Interpreter {
     fn visit_var_dec(&mut self, var_node: &VarNode) -> Result<(), RunTimeError> {
         let name = var_node.name.lexeme.clone();
 
-        let value = var_node.initializer.accept_mut(self)?;
+        let value = var_node.value_expr.accept_mut(self)?;
         self.envrionment.put(name, value);
         Ok(())
     }
+
+    // fn visit_var_assign(&mut self, var_node: &VarNode) -> Result<(), RunTimeError> {
+    //    let value = var_node.value_expr.accept_mut(self)?;
+    //    self.envrionment.update( &var_node.name, value)?;
+    //    Ok(())
+    // }
 }
 
 impl ExprVisitorMut for Interpreter {
     type Output = Result<Value, RunTimeError>;
 
+    fn visit_assign(&mut self, node: &AssignNode) -> Self::Output {
+        // Look up variable value and return it
+        let v = node.value.accept_mut(self)?;
+        self.envrionment.update(&node.name, v.clone())?;
+        Ok(v)
+    }
     fn visit_variable(&mut self, value: &Token) -> Self::Output {
         // Look up variable value and return it
         self.envrionment.get(value)

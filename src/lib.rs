@@ -10,7 +10,7 @@ mod enum_stmt;
 mod environment;
 pub mod error;
 mod interpreter;
-mod reverse_polish_notation_visitor;
+// mod reverse_polish_notation_visitor;
 
 use std::{
     fs,
@@ -26,7 +26,7 @@ use crate::{
     enum_parser::Parser,
     interpreter::Interpreter,
 };
-pub use reverse_polish_notation_visitor::Rpn;
+// pub use reverse_polish_notation_visitor::Rpn;
 
 /// A lox compiler and interpreter
 #[derive(Debug)]
