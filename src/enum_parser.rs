@@ -205,6 +205,11 @@ impl Parser {
             }
         }
 
+        if self.matches(&[TokenType::Identifier]) {
+            let token = self.previous().clone();
+            return Ok(ExprNode::new_variable(token));
+        }
+
         if self.matches(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect \')\' after expression")?;

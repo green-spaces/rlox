@@ -7,6 +7,7 @@ mod token;
 mod ast_enum;
 pub mod enum_parser;
 mod enum_stmt;
+mod environment;
 pub mod error;
 mod interpreter;
 mod reverse_polish_notation_visitor;

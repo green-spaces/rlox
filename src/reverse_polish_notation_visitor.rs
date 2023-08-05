@@ -7,6 +7,9 @@ pub struct Rpn {}
 
 impl AstNodeVisitor for Rpn {
     type Output = String;
+    fn visit_variable(&self, value: &crate::token::Token) -> Self::Output {
+        todo!()
+    }
 
     fn visit_unary(&self, value: &UnaryNode) -> Self::Output {
         let res = value.right.accept(*self);

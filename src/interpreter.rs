@@ -4,17 +4,22 @@ use crate::{
         LiteralNode, UnaryNode,
     },
     enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
-    token::TokenType,
+    environment::Environment,
+    token::{Token, TokenType},
     RunTimeError,
 };
 
 // TODO Need to remove Copy
 #[derive(Debug)]
-pub struct Interpreter {}
+pub struct Interpreter {
+    envrionment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            envrionment: Environment::new(),
+        }
     }
 
     // Maps all Value's onto Value::Bool
@@ -62,12 +67,21 @@ impl StmtVisitorMut for Interpreter {
     }
 
     fn visit_var_dec(&mut self, var_node: &VarNode) -> Result<(), RunTimeError> {
-        todo!();
+        let name = var_node.name.lexeme.clone();
+
+        let value = var_node.initializer.accept_mut(self)?;
+        self.envrionment.put(name, value);
+        Ok(())
     }
 }
 
 impl ExprVisitorMut for Interpreter {
     type Output = Result<Value, RunTimeError>;
+
+    fn visit_variable(&mut self, value: &Token) -> Self::Output {
+        // Look up variable value and return it
+        self.envrionment.get(value)
+    }
 
     fn visit_binary(&mut self, value: &BinaryNode) -> Self::Output {
         let left_eval = value.left.accept_mut(self)?;
@@ -145,7 +159,7 @@ impl ExprVisitorMut for Interpreter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Number(f64),
     Bool(bool),

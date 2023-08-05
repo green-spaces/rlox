@@ -11,4 +11,5 @@ pub enum SyntaxError {
 #[derive(Debug, Clone)]
 pub enum RunTimeError {
     InvalidBangValue(Token, String),
+    UndefinedVariable(Token),
 }
