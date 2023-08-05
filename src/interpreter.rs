@@ -3,7 +3,7 @@ use crate::{
         AssignNode, AstNodeAccept, BinaryNode, ExprAcceptMut, ExprNode, ExprVisitorMut,
         GroupingNode, LiteralNode, UnaryNode,
     },
-    enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
+    enum_stmt::{BlockNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
     environment::Environment,
     token::{Token, TokenType},
     RunTimeError,
@@ -71,6 +71,15 @@ impl StmtVisitorMut for Interpreter {
 
         let value = var_node.value_expr.accept_mut(self)?;
         self.envrionment.put(name, value);
+        Ok(())
+    }
+
+    fn visit_block(&mut self, block_node: &BlockNode) -> Result<(), RunTimeError> {
+        self.envrionment = Environment::enclosing(self.envrionment.clone());
+        for stmt in block_node.0.iter() {
+            stmt.accept(self)?;
+        }
+        self.envrionment = self.envrionment.parent().unwrap().as_ref().clone();
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use crate::{
     ast_enum::{ExprNode, LiteralNode},
-    enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
+    enum_stmt::{BlockNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
     token::{Token, TokenLiteral, TokenType},
 };
 use std::io::{self, Write};
@@ -73,7 +73,31 @@ impl Parser {
         if self.matches(&[TokenType::Var]) {
             return self.var_declaration();
         }
+
+        if self.matches(&[TokenType::LeftBrace]) {
+            return self.block_statement();
+        }
+
         self.statement()
+    }
+
+    fn block_statement(&mut self) -> Result<StmtNode, SyntaxError> {
+        let mut stmts = Vec::new();
+
+        while !self.matches(&[TokenType::RightBrace]) && !self.is_at_end() {
+            stmts.push(self.declaration()?);
+        }
+
+        let prev = self.previous();
+        if prev.t_type != TokenType::RightBrace {
+            return Err(SyntaxError::ExpectedToken(
+                TokenType::RightBrace,
+                prev.clone(),
+                "Expected closing brace '}'".to_string(),
+            ));
+        }
+
+        Ok(StmtNode::Block(BlockNode(stmts)))
     }
 
     fn var_declaration(&mut self) -> Result<StmtNode, SyntaxError> {
