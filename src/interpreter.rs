@@ -87,7 +87,7 @@ impl ExprVisitorMut for Interpreter {
     fn visit_assign(&mut self, node: &AssignNode) -> Self::Output {
         // Look up variable value and return it
         let v = node.value.accept_mut(self)?;
-        self.envrionment.update(&node.name, v.clone())?;
+        self.envrionment.assign(&node.name, v.clone())?;
         Ok(v)
     }
     fn visit_variable(&mut self, value: &Token) -> Self::Output {

@@ -25,7 +25,7 @@ impl Environment {
             .ok_or_else(|| RunTimeError::UndefinedVariable(token.clone()))
     }
 
-    pub fn update(&mut self, token: &Token, value: Value) -> Result<(), RunTimeError> {
+    pub fn assign(&mut self, token: &Token, value: Value) -> Result<(), RunTimeError> {
         self.values
             .get_mut(&token.lexeme)
             .map(|v| *v = value)
