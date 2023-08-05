@@ -73,23 +73,15 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> Result<StmtNode, SyntaxError> {
-        if self.matches(&[TokenType::Identifier]) {
-            let name = self.previous().clone();
-            let expr_init = if self.matches(&[TokenType::Equal]) {
-                self.expression()?
-            } else {
-                ExprNode::Literal(LiteralNode::Nil)
-            };
-            self.consume(TokenType::Semicolon, "Expected ':'")?;
-            return Ok(StmtNode::Var(VarNode::new(name, expr_init)));
+        let name = self.consume(TokenType::Identifier, "Expected identifier")?;
+        let mut initializer = ExprNode::Literal(LiteralNode::Nil);
+
+        if self.matches(&[TokenType::Equal]) {
+            initializer = self.expression()?;
         }
 
-        let next = self.peek().clone();
-        Err(SyntaxError::ExpectedToken(
-            TokenType::Identifier,
-            next,
-            "Expected to find an identifier".to_string(),
-        ))
+        self.consume(TokenType::Semicolon, "Expected ':'")?;
+        Ok(StmtNode::Var(VarNode::new(name, initializer)))
     }
 
     fn statement(&mut self) -> Result<StmtNode, SyntaxError> {
@@ -226,10 +218,10 @@ impl Parser {
         ))
     }
 
-    fn consume(&mut self, tt: TokenType, err_msg: &str) -> Result<(), SyntaxError> {
+    fn consume(&mut self, tt: TokenType, err_msg: &str) -> Result<Token, SyntaxError> {
         if self.check(&tt) {
-            let _ = self.advance();
-            Ok(())
+            let token = self.advance();
+            Ok(token.clone())
         } else {
             Err(SyntaxError::ExpectedToken(
                 tt,

@@ -90,7 +90,7 @@ impl Lox {
             return;
         };
 
-        let pretty_print = PrettyPrinter {};
+        // let pretty_print = PrettyPrinter {};
         // pretty_print.print(&ast);
 
         // Use persistent interpreter to maintain state accross parses
