@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::{enum_stmt::StmtNode, token::Token};
 
 pub trait AstNodeVisitor {
     type Output;
@@ -132,6 +132,12 @@ pub enum BinaryOperators {
 ///  A pretty printer for expressions
 #[derive(Copy, Clone)]
 pub struct PrettyPrinter {}
+
+impl PrettyPrinter {
+    pub fn print(&self, stmts: &[StmtNode]) {
+        println!("{stmts:?}")
+    }
+}
 
 impl AstNodeVisitor for PrettyPrinter {
     type Output = String;

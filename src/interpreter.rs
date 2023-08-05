@@ -3,7 +3,7 @@ use crate::{
         AstNodeAccept, BinaryNode, ExprAcceptMut, ExprNode, ExprVisitorMut, GroupingNode,
         LiteralNode, UnaryNode,
     },
-    enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut},
+    enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
     token::TokenType,
     RunTimeError,
 };
@@ -59,6 +59,10 @@ impl StmtVisitorMut for Interpreter {
         // replace with stdout
         println!("{}", eval);
         Ok(())
+    }
+
+    fn visit_var_dec(&mut self, var_node: &VarNode) -> Result<(), RunTimeError> {
+        todo!();
     }
 }
 

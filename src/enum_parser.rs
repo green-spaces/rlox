@@ -1,10 +1,9 @@
-use std::io::{self, Write};
-
 use crate::{
     ast_enum::{ExprNode, LiteralNode},
-    enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut},
+    enum_stmt::{StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
     token::{Token, TokenLiteral, TokenType},
 };
+use std::io::{self, Write};
 
 use super::SyntaxError;
 
@@ -19,17 +18,18 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Vec<StmtNode>, SyntaxError> {
-        //let res = self.expression();
         let mut stmts = Vec::new();
         while !self.is_at_end() {
-            match self.statement() {
+            match self.declaration() {
+                Ok(stmt) => stmts.push(stmt),
                 Err(SyntaxError::UnmatchedToken(token, msg)) => {
-                    self.report(token.line, "", &msg);
+                    self.report(token.line, &token.lexeme, &msg);
+                    self.syncchronize();
                 }
                 Err(SyntaxError::ExpectedToken(_, token, msg)) => {
-                    self.report(token.line, "", &msg);
+                    self.report(token.line, &token.lexeme, &msg);
+                    self.syncchronize();
                 }
-                Ok(stmt) => stmts.push(stmt),
             }
         }
         // TODO Do I need to return a copy of the errors here too?
@@ -63,6 +63,33 @@ impl Parser {
 
             let _ = self.advance();
         }
+    }
+
+    fn declaration(&mut self) -> Result<StmtNode, SyntaxError> {
+        if self.matches(&[TokenType::Var]) {
+            return self.var_declaration();
+        }
+        self.statement()
+    }
+
+    fn var_declaration(&mut self) -> Result<StmtNode, SyntaxError> {
+        if self.matches(&[TokenType::Identifier]) {
+            let name = self.previous().clone();
+            let expr_init = if self.matches(&[TokenType::Equal]) {
+                self.expression()?
+            } else {
+                ExprNode::Literal(LiteralNode::Nil)
+            };
+            self.consume(TokenType::Semicolon, "Expected ':'")?;
+            return Ok(StmtNode::Var(VarNode::new(name, expr_init)));
+        }
+
+        let next = self.peek().clone();
+        Err(SyntaxError::ExpectedToken(
+            TokenType::Identifier,
+            next,
+            "Expected to find an identifier".to_string(),
+        ))
     }
 
     fn statement(&mut self) -> Result<StmtNode, SyntaxError> {
@@ -215,7 +242,7 @@ impl Parser {
     fn report(&mut self, line: u64, location: &str, msg: &str) {
         let mut stderr = io::stderr();
         stderr
-            .write_all(format!("[line {line}] Error {location}: {msg}\n").as_bytes())
+            .write_all(format!("[line {line}] Error around '{location}': {msg}\n").as_bytes())
             .unwrap();
         stderr.flush().unwrap();
     }

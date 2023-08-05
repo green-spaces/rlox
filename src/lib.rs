@@ -31,11 +31,15 @@ pub use reverse_polish_notation_visitor::Rpn;
 #[derive(Debug)]
 pub struct Lox {
     had_error: bool,
+    interpreter: Interpreter,
 }
 
 impl Lox {
     pub fn new() -> Self {
-        Self { had_error: false }
+        Self {
+            had_error: false,
+            interpreter: Interpreter::new(),
+        }
     }
 
     pub fn run_file(&mut self, path: String) {
@@ -58,6 +62,8 @@ impl Lox {
             let _bytes_read = stdin.read_line(&mut line).unwrap();
             self.run(line.clone());
             self.had_error = false;
+            // Remove contents from the buffer ther have been processed
+            line.clear();
         }
     }
 
@@ -84,11 +90,11 @@ impl Lox {
             return;
         };
 
-        // let pretty_print = PrettyPrinter {};
-        // let ast_str = ast.accept(pretty_print);
+        let pretty_print = PrettyPrinter {};
+        // pretty_print.print(&ast);
 
-        let mut interpreter = Interpreter::new();
-        if let Err(output) = interpreter.interpret(ast) {
+        // Use persistent interpreter to maintain state accross parses
+        if let Err(output) = self.interpreter.interpret(ast) {
             self.had_error = true;
             println!("{output:?}");
         }
