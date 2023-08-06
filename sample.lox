@@ -18,3 +18,24 @@ print a;
 print b;
 print c;
 
+print "If statements";
+
+var a;
+if (true) {
+    a = 1;
+} else {
+    a = 2;
+}
+
+var b;
+if (false) {
+    b = 1;
+} else {
+    b = 2;
+}
+
+print a;
+
+print b;
+
+

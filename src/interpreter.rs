@@ -1,15 +1,14 @@
 use crate::{
     ast_enum::{
         AssignNode, AstNodeAccept, BinaryNode, ExprAcceptMut, ExprNode, ExprVisitorMut,
-        GroupingNode, LiteralNode, UnaryNode,
+        GroupingNode, LiteralNode, LogicalNode, UnaryNode,
     },
-    enum_stmt::{BlockNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
+    enum_stmt::{BlockNode, IfNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
     environment::Environment,
     token::{Token, TokenType},
     RunTimeError,
 };
 
-// TODO Need to remove Copy
 #[derive(Debug)]
 pub struct Interpreter {
     envrionment: Environment,
@@ -54,6 +53,18 @@ impl Interpreter {
 }
 
 impl StmtVisitorMut for Interpreter {
+    fn visit_if(&mut self, if_stmt: &IfNode) -> Result<(), RunTimeError> {
+        let condition_res = if_stmt.condition.accept_mut(self)?;
+        if self.is_truthy(&condition_res) {
+            if_stmt.then_branch.accept(self)?;
+        } else {
+            if let Some(else_branch) = &if_stmt.else_branch {
+                else_branch.accept(self)?;
+            }
+        }
+        Ok(())
+    }
+
     fn visit_expr(&mut self, expr_node: &ExprNode) -> Result<(), RunTimeError> {
         let _ = expr_node.accept_mut(self);
         Ok(())
@@ -93,12 +104,30 @@ impl StmtVisitorMut for Interpreter {
 impl ExprVisitorMut for Interpreter {
     type Output = Result<Value, RunTimeError>;
 
+    fn visit_logical(&mut self, node: &LogicalNode) -> Self::Output {
+        let mut left_value = node.left.accept_mut(self)?;
+        let left_is_truthy = self.is_truthy(&left_value);
+
+        if node.operator.t_type == TokenType::Or {
+            if left_is_truthy {
+                return Ok(left_value);
+            }
+        } else {
+            if !left_is_truthy {
+                return Ok(left_value);
+            }
+        }
+
+        node.right.accept_mut(self)
+    }
+
     fn visit_assign(&mut self, node: &AssignNode) -> Self::Output {
         // Look up variable value and return it
         let v = node.value.accept_mut(self)?;
         self.envrionment.assign(&node.name, v.clone())?;
         Ok(v)
     }
+
     fn visit_variable(&mut self, value: &Token) -> Self::Output {
         // Look up variable value and return it
         self.envrionment.get(value)

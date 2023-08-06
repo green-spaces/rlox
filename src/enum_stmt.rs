@@ -6,6 +6,7 @@ pub enum StmtNode {
     Expr(ExprNode),
     VarDec(VarNode),
     Block(BlockNode),
+    IfStmt(IfNode),
 }
 
 pub trait StmtAcceptorMut<V: StmtVisitorMut> {
@@ -20,6 +21,8 @@ pub trait StmtVisitorMut {
     fn visit_var_dec(&mut self, var_node: &VarNode) -> Result<(), RunTimeError>;
 
     fn visit_block(&mut self, block_node: &BlockNode) -> Result<(), RunTimeError>;
+
+    fn visit_if(&mut self, if_stmt: &IfNode) -> Result<(), RunTimeError>;
 }
 
 impl<V> StmtAcceptorMut<V> for StmtNode
@@ -32,6 +35,24 @@ where
             Self::Expr(expr) => visitor.visit_expr(expr),
             Self::VarDec(node) => visitor.visit_var_dec(node),
             Self::Block(node) => visitor.visit_block(node),
+            Self::IfStmt(node) => visitor.visit_if(node),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct IfNode {
+    pub condition: ExprNode,
+    pub then_branch: Box<StmtNode>,
+    pub else_branch: Option<Box<StmtNode>>,
+}
+
+impl IfNode {
+    pub fn new(condition: ExprNode, then_branch: StmtNode, else_branch: Option<StmtNode>) -> Self {
+        Self {
+            condition,
+            then_branch: Box::new(then_branch),
+            else_branch: else_branch.map(Box::new),
         }
     }
 }

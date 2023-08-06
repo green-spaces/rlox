@@ -1,6 +1,6 @@
 use crate::{
     ast_enum::{ExprNode, LiteralNode},
-    enum_stmt::{BlockNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
+    enum_stmt::{BlockNode, IfNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
     token::{Token, TokenLiteral, TokenType},
 };
 use std::io::{self, Write};
@@ -74,11 +74,57 @@ impl Parser {
             return self.var_declaration();
         }
 
+        self.statement()
+    }
+
+    fn var_declaration(&mut self) -> Result<StmtNode, SyntaxError> {
+        let name = self.consume(TokenType::Identifier, "Expected identifier")?;
+        let mut initializer = ExprNode::Literal(LiteralNode::Nil);
+
+        if self.matches(&[TokenType::Equal]) {
+            initializer = self.expression()?;
+        }
+
+        self.consume(TokenType::Semicolon, "Expected ':'")?;
+        Ok(StmtNode::VarDec(VarNode::new(name, initializer)))
+    }
+
+    fn statement(&mut self) -> Result<StmtNode, SyntaxError> {
         if self.matches(&[TokenType::LeftBrace]) {
             return self.block_statement();
         }
 
-        self.statement()
+        if self.matches(&[TokenType::If]) {
+            return self.if_statement();
+        }
+
+        if self.matches(&[TokenType::Print]) {
+            return self.print_statement();
+        }
+
+        self.expression_statement()
+    }
+
+    fn if_statement(&mut self) -> Result<StmtNode, SyntaxError> {
+        self.consume(
+            TokenType::LeftParen,
+            "If statements require '(' before condition.",
+        )?;
+        let condition = self.comma_expression()?;
+        self.consume(
+            TokenType::RightParen,
+            "If statements require ')' after condition.",
+        )?;
+
+        // TODO Should variable declarations be allowed as the main entry poin
+        let then_branch = self.statement()?;
+
+        let mut else_branch = None;
+        if self.matches(&[TokenType::Else]) {
+            else_branch = Some(self.statement()?);
+        }
+        let if_stmt = IfNode::new(condition, then_branch, else_branch);
+        Ok(StmtNode::IfStmt(if_stmt))
     }
 
     fn block_statement(&mut self) -> Result<StmtNode, SyntaxError> {
@@ -98,26 +144,6 @@ impl Parser {
         }
 
         Ok(StmtNode::Block(BlockNode(stmts)))
-    }
-
-    fn var_declaration(&mut self) -> Result<StmtNode, SyntaxError> {
-        let name = self.consume(TokenType::Identifier, "Expected identifier")?;
-        let mut initializer = ExprNode::Literal(LiteralNode::Nil);
-
-        if self.matches(&[TokenType::Equal]) {
-            initializer = self.expression()?;
-        }
-
-        self.consume(TokenType::Semicolon, "Expected ':'")?;
-        Ok(StmtNode::VarDec(VarNode::new(name, initializer)))
-    }
-
-    fn statement(&mut self) -> Result<StmtNode, SyntaxError> {
-        if self.matches(&[TokenType::Print]) {
-            return self.print_statement();
-        }
-
-        self.expression_statement()
     }
 
     fn print_statement(&mut self) -> Result<StmtNode, SyntaxError> {
@@ -158,7 +184,7 @@ impl Parser {
     // TODO Study this, the logic is a little convoluted
     // https://craftinginterpreters.com/statements-and-state.html#assignment-syntax
     fn assignment(&mut self) -> Result<ExprNode, SyntaxError> {
-        let expr = self.equality()?;
+        let expr = self.logical_or()?;
 
         if self.matches(&[TokenType::Equal]) {
             let equals = self.previous().clone();
@@ -172,6 +198,28 @@ impl Parser {
                     return Err(SyntaxError::InvalidAssignment(equals));
                 }
             }
+        }
+        Ok(expr)
+    }
+
+    fn logical_or(&mut self) -> Result<ExprNode, SyntaxError> {
+        let mut expr = self.logical_and()?;
+
+        while self.matches(&[TokenType::Or]) {
+            let token = self.previous().clone();
+            let right = self.logical_and()?;
+            expr = ExprNode::new_logical(expr, token, right);
+        }
+        Ok(expr)
+    }
+
+    fn logical_and(&mut self) -> Result<ExprNode, SyntaxError> {
+        let mut expr = self.equality()?;
+
+        while self.matches(&[TokenType::And]) {
+            let token = self.previous().clone();
+            let right = self.equality()?;
+            expr = ExprNode::new_logical(expr, token, right);
         }
         Ok(expr)
     }

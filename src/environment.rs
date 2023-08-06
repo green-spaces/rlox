@@ -3,6 +3,10 @@ use std::collections::HashMap;
 use std::default;
 
 // TODO Figure out how to do enclosing without a clone
+// Probably the easiest way to deal with this to have using an Option::take
+// Also look to desing of too many linked lists (this is similar to what Environment needs
+// Probably better to encapsulate the enclosing/popping  of enviroments (could use Drop to make
+// popping automatic
 #[derive(Debug, Clone, Default)]
 pub struct Environment {
     values: HashMap<String, Value>,

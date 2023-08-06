@@ -9,6 +9,7 @@ pub trait AstNodeVisitor {
     fn visit_unary(&self, value: &UnaryNode) -> Self::Output;
     fn visit_binary(&self, value: &BinaryNode) -> Self::Output;
     fn visit_grouping(&self, value: &GroupingNode) -> Self::Output;
+    fn visit_logical(&self, value: &LogicalNode) -> Self::Output;
 }
 
 pub trait AstNodeAccept<V: AstNodeVisitor> {
@@ -24,6 +25,7 @@ impl<V: AstNodeVisitor> AstNodeAccept<V> for ExprNode {
             Self::Unary(u) => visitor.visit_unary(u),
             Self::Binary(b) => visitor.visit_binary(b),
             Self::Grouping(g) => visitor.visit_grouping(g),
+            Self::Logical(l) => visitor.visit_logical(l),
         }
     }
 }
@@ -37,6 +39,7 @@ pub trait ExprVisitorMut {
     fn visit_grouping(&mut self, value: &GroupingNode) -> Self::Output;
     fn visit_variable(&mut self, value: &Token) -> Self::Output;
     fn visit_assign(&mut self, node: &AssignNode) -> Self::Output;
+    fn visit_logical(&mut self, node: &LogicalNode) -> Self::Output;
 }
 
 pub trait ExprAcceptMut<V: ExprVisitorMut> {
@@ -52,6 +55,7 @@ impl<V: ExprVisitorMut> ExprAcceptMut<V> for ExprNode {
             Self::Unary(u) => visitor.visit_unary(u),
             Self::Binary(b) => visitor.visit_binary(b),
             Self::Grouping(g) => visitor.visit_grouping(g),
+            Self::Logical(l) => visitor.visit_logical(l),
         }
     }
 }
@@ -64,6 +68,7 @@ pub enum ExprNode {
     Unary(UnaryNode),
     Binary(BinaryNode),
     Grouping(GroupingNode),
+    Logical(LogicalNode),
 }
 
 impl ExprNode {
@@ -98,6 +103,21 @@ impl ExprNode {
     pub fn new_variable(token: Token) -> Self {
         Self::Variable(token)
     }
+
+    pub fn new_logical(left: ExprNode, operator: Token, right: ExprNode) -> Self {
+        Self::Logical(LogicalNode {
+            left: Box::new(left),
+            operator,
+            right: Box::new(right),
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct LogicalNode {
+    pub left: Box<ExprNode>,
+    pub operator: Token,
+    pub right: Box<ExprNode>,
 }
 
 #[derive(Debug)]
@@ -175,6 +195,10 @@ impl AstNodeVisitor for PrettyPrinter {
 
     fn visit_assign(&self, value: &AssignNode) -> Self::Output {
         todo!()
+    }
+
+    fn visit_logical(&self, value: &LogicalNode) -> Self::Output {
+        todo!();
     }
 
     fn visit_binary(&self, binary: &BinaryNode) -> Self::Output {
