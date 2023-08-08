@@ -3,7 +3,7 @@ use crate::{
         AssignNode, AstNodeAccept, BinaryNode, ExprAcceptMut, ExprNode, ExprVisitorMut,
         GroupingNode, LiteralNode, LogicalNode, UnaryNode,
     },
-    enum_stmt::{BlockNode, IfNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode},
+    enum_stmt::{BlockNode, IfNode, StmtAcceptorMut, StmtNode, StmtVisitorMut, VarNode, WhileNode},
     environment::Environment,
     token::{Token, TokenType},
     RunTimeError,
@@ -53,6 +53,15 @@ impl Interpreter {
 }
 
 impl StmtVisitorMut for Interpreter {
+    fn visit_while(&mut self, while_stmt: &WhileNode) -> Result<(), RunTimeError> {
+        let mut cond_res = while_stmt.condition.accept_mut(self)?;
+        while self.is_truthy(&cond_res) {
+            while_stmt.body.accept(self)?;
+            cond_res = while_stmt.condition.accept_mut(self)?;
+        }
+        Ok(())
+    }
+
     fn visit_if(&mut self, if_stmt: &IfNode) -> Result<(), RunTimeError> {
         let condition_res = if_stmt.condition.accept_mut(self)?;
         if self.is_truthy(&condition_res) {

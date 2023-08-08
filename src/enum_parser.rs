@@ -102,7 +102,31 @@ impl Parser {
             return self.print_statement();
         }
 
+        if self.matches(&[TokenType::While]) {
+            return self.while_statement();
+        }
+
         self.expression_statement()
+    }
+
+    fn while_statement(&mut self) -> Result<StmtNode, SyntaxError> {
+        let token = self.previous().clone();
+        self.consume(
+            TokenType::LeftParen,
+            "While condition must start with left paren '('",
+        )?;
+        let condition = self.expression()?;
+        self.consume(
+            TokenType::RightParen,
+            "While condition must end with right paren ')'",
+        )?;
+
+        self.consume(
+            TokenType::LeftBrace,
+            "While body must start with a left brace '{'",
+        )?;
+        let body = self.block_statement()?;
+        Ok(StmtNode::new_while(condition, body))
     }
 
     fn if_statement(&mut self) -> Result<StmtNode, SyntaxError> {

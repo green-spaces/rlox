@@ -7,6 +7,7 @@ pub enum StmtNode {
     VarDec(VarNode),
     Block(BlockNode),
     IfStmt(IfNode),
+    WhileStmt(WhileNode),
 }
 
 pub trait StmtAcceptorMut<V: StmtVisitorMut> {
@@ -23,6 +24,8 @@ pub trait StmtVisitorMut {
     fn visit_block(&mut self, block_node: &BlockNode) -> Result<(), RunTimeError>;
 
     fn visit_if(&mut self, if_stmt: &IfNode) -> Result<(), RunTimeError>;
+
+    fn visit_while(&mut self, while_stmt: &WhileNode) -> Result<(), RunTimeError>;
 }
 
 impl<V> StmtAcceptorMut<V> for StmtNode
@@ -36,8 +39,15 @@ where
             Self::VarDec(node) => visitor.visit_var_dec(node),
             Self::Block(node) => visitor.visit_block(node),
             Self::IfStmt(node) => visitor.visit_if(node),
+            Self::WhileStmt(node) => visitor.visit_while(node),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct WhileNode {
+    pub condition: ExprNode,
+    pub body: Box<StmtNode>,
 }
 
 #[derive(Debug)]
@@ -69,5 +79,15 @@ pub struct VarNode {
 impl VarNode {
     pub fn new(name: Token, value_expr: ExprNode) -> Self {
         Self { name, value_expr }
+    }
+}
+
+impl StmtNode {
+    pub fn new_while(condition: ExprNode, body: StmtNode) -> Self {
+        let node = WhileNode {
+            condition,
+            body: Box::new(body),
+        };
+        Self::WhileStmt(node)
     }
 }
