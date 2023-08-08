@@ -106,11 +106,70 @@ impl Parser {
             return self.while_statement();
         }
 
+        if self.matches(&[TokenType::For]) {
+            return self.for_statement();
+        }
+
         self.expression_statement()
     }
 
+    // Other statments (if ect cant be used in the initializer
+    // for ( dec | expr stmt; expr? ; expr? ) statement
+    fn for_statement(&mut self) -> Result<StmtNode, SyntaxError> {
+        self.consume(
+            TokenType::LeftParen,
+            "For initializer must start with left paren '('",
+        )?;
+
+        // Get initializer, Statements will consume the semicolon
+        let mut initializer = StmtNode::Expr(ExprNode::Literal(LiteralNode::Nil));
+        if self.matches(&[TokenType::Var]) {
+            initializer = self.var_declaration()?;
+        } else if !self.check(&TokenType::Semicolon) {
+            initializer = self.expression_statement()?;
+        } else {
+            self.consume(
+                TokenType::Semicolon,
+                "For initializer and condition must be seperated by a semicolon ';'",
+            )?;
+        }
+
+        let mut condition = ExprNode::Literal(LiteralNode::True);
+        if !self.check(&TokenType::Semicolon) {
+            condition = self.expression()?;
+        }
+
+        self.consume(
+            TokenType::Semicolon,
+            "For condition and increment must be seperated by a semicolon ';'",
+        )?;
+
+        let increment = if !self.check(&TokenType::RightParen) {
+            let increment_expr = self.expression()?;
+            StmtNode::Expr(increment_expr)
+        } else {
+            StmtNode::Expr(ExprNode::Literal(LiteralNode::Nil))
+        };
+
+        self.consume(
+            TokenType::RightParen,
+            "For increment must be followed by a right paren ')'",
+        )?;
+        let body = self.statement()?;
+
+        // Desugar to while loop
+        let stmts = vec![body, increment];
+        let while_body = StmtNode::Block(BlockNode(stmts));
+        let while_stmt = StmtNode::new_while(condition, while_body);
+
+        let loop_stmts = vec![initializer, while_stmt];
+
+        println!("{loop_stmts:#?}");
+
+        Ok(StmtNode::Block(BlockNode(loop_stmts)))
+    }
+
     fn while_statement(&mut self) -> Result<StmtNode, SyntaxError> {
-        let token = self.previous().clone();
         self.consume(
             TokenType::LeftParen,
             "While condition must start with left paren '('",
@@ -121,11 +180,7 @@ impl Parser {
             "While condition must end with right paren ')'",
         )?;
 
-        self.consume(
-            TokenType::LeftBrace,
-            "While body must start with a left brace '{'",
-        )?;
-        let body = self.block_statement()?;
+        let body = self.statement()?;
         Ok(StmtNode::new_while(condition, body))
     }
 
